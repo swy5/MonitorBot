@@ -1,7 +1,14 @@
+import os
 import slacker
+import time
+import json
+import logging
+from ssl import SSLError
 from websocket import create_connection
 from websocket import WebSocketException
 from websocket import WebSocketConnectionClosedException
+
+logger = logging.getLogger(__name__)
 
 try:
     from setting import API_KEY
@@ -12,11 +19,25 @@ class Bot(object):
 
     def __init__(self):
         self.webapi = slacker.Slacker(API_KEY)
+        self.username = None
+        self.domain = None
+        self.login_data = None
+        self.websocket = None
+        self.users = {}
+        self.channels = {}
+        self.connected = False
+        self.rtm_connect()
 
     def rtm_connect(self):
         reply = self.webapi.rtm.start().body
         time.sleep(1)
         self.parse_slack_login_data(reply)
+
+    def parse_channel_data(self, channel_data):
+        self.channels.update({c['id']: c for c in channel_data})
+
+    def parse_user_data(self, user_data):
+        self.users.update({u['id']: u for u in user_data})
 
     def parse_slack_login_data(self, login_data):
         self.login_data = login_data
@@ -37,28 +58,46 @@ class Bot(object):
                                            http_proxy_port=proxy_port, http_no_proxy=no_proxy)
         self.websocket.sock.setblocking(0)
 
-    def rtm_read(self):
+    def read_message(self):
         json_data = self.websocket_safe_read()
         data = []
         if json_data != '':
             for d in json_data.split('\n'):
                 data.append(json.loads(d))
-            print(data)
-        return data
+
+        if not len(data): return
+        ty = data[0].get('type', None)
+        ch = data[0].get('channel', None)
+        ms = data[0].get('text', None)
+        if type != 'message': return
+        return {'message': ms, 'channel': ch}
+
+    def websocket_safe_read(self):
+        """Returns data if available, otherwise ''. Newlines indicate multiple messages """
+        data = ''
+        while True:
+            try:
+                data += '{0}\n'.format(self.websocket.recv())
+            except WebSocketException as e:
+                if isinstance(e, WebSocketConnectionClosedException):
+                    logger.warning('lost websocket connection, try to reconnect now')
+                else:
+                    logger.warning('websocket exception: %s', e)
+                self.reconnect()
+            except Exception as e:
+                if isinstance(e, SSLError) and e.errno == 2:
+                    pass
+                else:
+                    logger.warning('Exception in websocket_safe_read: %s', e)
+                return data.rstrip()
 
     def send_message(self, channel, message, attachments=None, as_user=True, thread_ts=None):
         self.webapi.chat.post_message(
                 channel,
                 message,
                 username=self.login_data['self']['name'],
-                icon_url=self.bot_icon,
-                icon_emoji=self.bot_emoji,
+                icon_url=None,
+                icon_emoji=None,
                 attachments=attachments,
                 as_user=as_user,
-        thread_ts=thread_ts)
-
-
-if __name__ == '__main__':
-    bot = Bot()
-    while True:
-        bot.rtm_read()
+                thread_ts=thread_ts)
