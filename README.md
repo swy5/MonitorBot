@@ -7,15 +7,15 @@ PythonスクリプトとSlackをつなげます.
 
 # できること
 
-## 1. Pythonスクリプト内に, あなたのSlackチャンネルへメッセージを送る機能を忍ばせられます.
+## 1. Pythonスクリプトから, あなたのSlackチャンネルへメッセージを送れます.
 <img src="static/m1.png" style="border: solid 1px gray">
 <img src="static/m2.png" style="border: solid 1px gray">
 
-## 2. メッセージ以外にも, Matplotlibで作成したグラフ画像や, PillowのImageも送ることができます.
+## 2. メッセージ以外にも, Matplotlibで作成したグラフ画像や, PillowのImageも送れます.
 <img src="static/m3.png" style="border: solid 1px gray">
 <img src="static/m4.png" style="border: solid 1px gray">
 
-## 3. Slackから実行中のPythonスクリプト内の関数をキックするように, BOTに命令できます.
+## 3. 逆にSlackから, 実行中のPythonスクリプト内に定義された関数を実行するよう指示することができます.
 <img src="static/m5.png" style="border: solid 1px gray">
 <img src="static/m6.png" style="border: solid 1px gray">
 
@@ -96,8 +96,10 @@ img = Image.fromarray(np.random.randint(0, 255, size=(128, 128, 3)).astype(np.ui
 bot.upload_pillow("@someone", img)
 ```
 
-### 3. Slackから送られてきたメッセージに応答する.
+### 3. Slackから送られてきたメッセージに対応して関数を実行する.
 SlackからBot宛に送られたメッセージに対する処理を定義するデコレータを使うことができます.
+デコレートされた関数は, メインスレッドとは非同期に実行されます. そのため, メインの処理を
+妨げることなく, メッセージに対する処理を実行できます.
 
 ``` MonitorBot.response_to(pattern) ```
 
