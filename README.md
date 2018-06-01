@@ -36,6 +36,17 @@ Linux, MAC:
 Windows:  
 http://www.k-cube.co.jp/wakaba/server/environ.html
 
+
+### MonitorBotモジュールのインストール方法
+
+1. githubから, このレポジトリをダウンロード  
+```git clone  https://github.com/swy5/MonitorBot.git```
+2. レポジトリ内へ移動  
+```cd MonitorBot```
+3. インストール  
+```pip install -e .```
+
+
 ### モジュールのロード&インスタンス化
 環境変数BOT_KEYが適切に設定されていれば, 以下のコードで
 Botを使用する準備ができます.
