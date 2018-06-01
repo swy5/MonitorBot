@@ -1,4 +1,4 @@
-# Monitor Bot
+# Monitor Bot v0.0.1
 
 ## できること
 
@@ -113,3 +113,6 @@ def func(message):
     ch = message['channel']
     bot.send_message(ch, "Hola")
 ```
+
+## 注意
+MonitorBotを短い時間に何度もインスタンス化すると, Slackへのリクエストが拒否されることがあります.
