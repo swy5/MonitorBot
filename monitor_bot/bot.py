@@ -15,6 +15,7 @@ try:
 except:
     raise Exception()
 
+
 class Bot(object):
 
     def __init__(self):
@@ -65,11 +66,13 @@ class Bot(object):
             for d in json_data.split('\n'):
                 data.append(json.loads(d))
 
-        if not len(data): return
+        if not len(data):
+            return
         ty = data[0].get('type', None)
         ch = data[0].get('channel', None)
         ms = data[0].get('text', None)
-        if type != 'message': return
+        if type != 'message':
+            return
         return {'message': ms, 'channel': ch}
 
     def websocket_safe_read(self):
@@ -93,11 +96,11 @@ class Bot(object):
 
     def send_message(self, channel, message, attachments=None, as_user=True, thread_ts=None):
         self.webapi.chat.post_message(
-                channel,
-                message,
-                username=self.login_data['self']['name'],
-                icon_url=None,
-                icon_emoji=None,
-                attachments=attachments,
-                as_user=as_user,
-                thread_ts=thread_ts)
+            channel,
+            message,
+            username=self.login_data['self']['name'],
+            icon_url=None,
+            icon_emoji=None,
+            attachments=attachments,
+            as_user=as_user,
+            thread_ts=thread_ts)
