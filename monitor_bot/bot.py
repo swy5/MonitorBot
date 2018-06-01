@@ -102,7 +102,7 @@ class MonitorBot(object):
                         if user == self.bot_id:
                             continue
 
-                        text = mss["text"]
+                        text = mss.get("text", '')
                         if pt.match(text):
                             func(mss)
 
