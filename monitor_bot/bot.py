@@ -23,8 +23,12 @@ class MonitorBot(object):
     def __init__(self):
         self.sc = SlackClient(API_KEY)
         self.thread = {}
-        self.bot_id = self.sc.api_call('rtm.connect')['self']['id']
-        self.sc.rtm_connect()
+        ret = self.sc.api_call('rtm.connect')
+        if ret["ok"]:
+            self.bot_id = ret['self']['id']
+            self.sc.rtm_connect()
+        else:
+            raise Exception(ret["error"])
 
     def send_message(self, channel, message, attachments=None):
         """
@@ -49,6 +53,7 @@ class MonitorBot(object):
         """
         buffer = BytesIO()
         pyplot_obj.savefig(buffer)
+        pyplot_obj.clf()
         self.sc.api_call(
             "files.upload",
             filename="graph.png",
@@ -71,7 +76,13 @@ class MonitorBot(object):
             file=buffer.getvalue()
         )
 
-    def response_to(self, pattern, reg=True):
+    def __del__(self):
+        for k in self.thread.keys():
+            th_dict = self.thread[k]
+            th_dict['stop_event'].set()
+            th_dict['thread'].join()
+
+    def response_to(self, pattern):
         """
 
         Following example response to a message 'Hello' and 
@@ -89,6 +100,7 @@ class MonitorBot(object):
                 pt = re.compile(pattern)
                 while True:
                     if event.is_set():
+                        print("Break")
                         break
                     time.sleep(0.5)
                     message = self.sc.rtm_read()
@@ -115,8 +127,9 @@ class MonitorBot(object):
 
             event = threading.Event()
             self.thread[func_name] = {
-                "thread": threading.Thread(args=(event,), target=loop, name=func.__name__),
+                "thread": threading.Thread(args=(event,), target=loop),
                 "stop_event": event
             }
             self.thread[func_name]['thread'].start()
+            print("MonitorBot.response_to: Ready to response using function '{}'.".format(func_name))
         return decorator
