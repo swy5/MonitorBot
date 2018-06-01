@@ -1,106 +1,122 @@
 import os
+import re
 import slacker
 import time
 import json
 import logging
 from ssl import SSLError
-from websocket import create_connection
-from websocket import WebSocketException
-from websocket import WebSocketConnectionClosedException
-
-logger = logging.getLogger(__name__)
-
-try:
-    from setting import API_KEY
-except:
-    raise Exception()
+from slackclient import SlackClient
+from io import BytesIO
+import threading
+from .setting import API_KEY
 
 
-class Bot(object):
+class MonitorBot(object):
+    """
+    Monitor bot class.
+    Please set slack API KEY to your environment variable as following example.
+
+    ```export BOT_KEY=xxxxxxxxxxxxxxxx```
+
+    """
 
     def __init__(self):
-        self.webapi = slacker.Slacker(API_KEY)
-        self.username = None
-        self.domain = None
-        self.login_data = None
-        self.websocket = None
-        self.users = {}
-        self.channels = {}
-        self.connected = False
-        self.rtm_connect()
+        self.sc = SlackClient(API_KEY)
+        self.thread = {}
+        self.bot_id = self.sc.api_call('rtm.connect')['self']['id']
+        self.sc.rtm_connect()
 
-    def rtm_connect(self):
-        reply = self.webapi.rtm.start().body
-        time.sleep(1)
-        self.parse_slack_login_data(reply)
+    def send_message(self, channel, message, attachments=None):
+        """
+        Args:
+            channel(string):
+            message(string):
+            attachments(list):
+        """
+        self.sc.api_call(
+            "chat.postMessage",
+            channel=channel,
+            text=message,
+            as_user=True,
+            attachments=attachments
+        )
 
-    def parse_channel_data(self, channel_data):
-        self.channels.update({c['id']: c for c in channel_data})
+    def upload_pyplot(self, channel, pyplot_obj):
+        """
+        Args:
+            channel:
+            pyplot_obj:
+        """
+        buffer = BytesIO()
+        pyplot_obj.savefig(buffer)
+        self.sc.api_call(
+            "files.upload",
+            filename="graph.png",
+            channels=channel,
+            file=buffer.getvalue()
+        )
 
-    def parse_user_data(self, user_data):
-        self.users.update({u['id']: u for u in user_data})
+    def upload_pillow(self, channel, pillow_img_obj):
+        """
+        Args:
+            channel:
+            pillow_img_obj:
+        """
+        buffer = BytesIO()
+        pillow_img_obj.save(buffer, format="png")
+        self.sc.api_call(
+            "files.upload",
+            filename="image.png",
+            channels=channel,
+            file=buffer.getvalue()
+        )
 
-    def parse_slack_login_data(self, login_data):
-        self.login_data = login_data
-        self.domain = self.login_data['team']['domain']
-        self.username = self.login_data['self']['name']
-        self.parse_user_data(login_data['users'])
-        self.parse_channel_data(login_data['channels'])
-        self.parse_channel_data(login_data['groups'])
-        self.parse_channel_data(login_data['ims'])
+    def response_to(self, pattern, reg=True):
+        """
 
-        proxy, proxy_port, no_proxy = None, None, None
-        if 'http_proxy' in os.environ:
-            proxy, proxy_port = os.environ['http_proxy'].split(':')
-        if 'no_proxy' in os.environ:
-            no_proxy = os.environ['no_proxy']
+        Following example response to a message 'Hello' and 
+        sends message 'Hola!'
 
-        self.websocket = create_connection(self.login_data['url'], http_proxy_host=proxy,
-                                           http_proxy_port=proxy_port, http_no_proxy=no_proxy)
-        self.websocket.sock.setblocking(0)
+        Example:
+            bot = MonitorBot()
+            @bot.response_to('Hello'):
+            def func(message):
+                bot.send_message('@user', 'Hola')
 
-    def read_message(self):
-        json_data = self.websocket_safe_read()
-        data = []
-        if json_data != '':
-            for d in json_data.split('\n'):
-                data.append(json.loads(d))
+        """
+        def decorator(func):
+            def loop(event):
+                pt = re.compile(pattern)
+                while True:
+                    if event.is_set():
+                        break
+                    time.sleep(0.5)
+                    message = self.sc.rtm_read()
+                    for mss in message:
+                        if not len(mss):
+                            continue
+                        type = mss["type"]
+                        if type != 'message':
+                            continue
+                        user = mss.get("user", None)
+                        if user == self.bot_id:
+                            continue
 
-        if not len(data):
-            return
-        ty = data[0].get('type', None)
-        ch = data[0].get('channel', None)
-        ms = data[0].get('text', None)
-        if type != 'message':
-            return
-        return {'message': ms, 'channel': ch}
+                        text = mss["text"]
+                        if pt.match(text):
+                            func(mss)
 
-    def websocket_safe_read(self):
-        """Returns data if available, otherwise ''. Newlines indicate multiple messages """
-        data = ''
-        while True:
-            try:
-                data += '{0}\n'.format(self.websocket.recv())
-            except WebSocketException as e:
-                if isinstance(e, WebSocketConnectionClosedException):
-                    logger.warning('lost websocket connection, try to reconnect now')
-                else:
-                    logger.warning('websocket exception: %s', e)
-                self.reconnect()
-            except Exception as e:
-                if isinstance(e, SSLError) and e.errno == 2:
-                    pass
-                else:
-                    logger.warning('Exception in websocket_safe_read: %s', e)
-                return data.rstrip()
+            func_name = func.__name__
+            th_dict = self.thread.get(func_name, None)
+            if th_dict is not None:
+                # Overrides existing thread.
+                th_dict['stop_event'].set()
+                th_dict['thread'].join()
 
-    def send_message(self, channel, message, attachments=None, as_user=True, thread_ts=None):
-        self.webapi.chat.post_message(
-            channel,
-            message,
-            username=self.login_data['self']['name'],
-            icon_url=None,
-            icon_emoji=None,
-            attachments=attachments,
-            as_user=as_user,
-            thread_ts=thread_ts)
+            event = threading.Event()
+            self.thread[func_name] = {
+                "thread": threading.Thread(args=(event,), target=loop, name=func.__name__),
+                "stop_event": event
+            }
+            self.thread[func_name]['thread'].start()
+        return decorator

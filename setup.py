@@ -5,7 +5,7 @@ if sys.version_info < (3, 4):
     raise RuntimeError('Monitor bot requires Python3')
 
 requires = [
-    "slacker"
+    "slackclient"
 ]
 
 setup(
