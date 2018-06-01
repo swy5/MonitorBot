@@ -1,16 +1,21 @@
 # Monitor Bot v0.0.1
 
-## できること
+PythonスクリプトとSlackをつなげます.
+長時間かかる処理をSlackで監視することができるようになります.
 
-### 1. Pythonスクリプト内に, あなたのSlackチャンネルへメッセージを送る機能を忍ばせられます.
+機械学習の学習進捗確認や, サーバの状態確認に使用できそう.
+
+# できること
+
+## 1. Pythonスクリプト内に, あなたのSlackチャンネルへメッセージを送る機能を忍ばせられます.
 <img src="static/m1.png" style="border: solid 1px gray">
 <img src="static/m2.png" style="border: solid 1px gray">
 
-### 2. メッセージ以外にも, Matplotlibで作成したグラフ画像や, PillowのImageも送ることができます.
+## 2. メッセージ以外にも, Matplotlibで作成したグラフ画像や, PillowのImageも送ることができます.
 <img src="static/m3.png" style="border: solid 1px gray">
 <img src="static/m4.png" style="border: solid 1px gray">
 
-### 3. Slackから実行中のPythonスクリプト内の関数をキックするように, BOTに命令できます.
+## 3. Slackから実行中のPythonスクリプト内の関数をキックするように, BOTに命令できます.
 <img src="static/m5.png" style="border: solid 1px gray">
 <img src="static/m6.png" style="border: solid 1px gray">
 
