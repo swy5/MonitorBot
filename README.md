@@ -36,7 +36,7 @@ http://www.k-cube.co.jp/wakaba/server/environ.html
 Botを使用する準備ができます.
 
 ##### コード例:
-```
+```python
 from monitor_bot.bot import MonitorBot
 bot = MonitorBot()
 ```
@@ -51,7 +51,7 @@ bot = MonitorBot()
 - attachments(json): メッセージの色を変えるなど, 付加情報をつけられます. データ構造などの詳しい情報はSlackClientのWebページを参考にしてください.
 
 ##### コード例:
-```
+```python
 from monitor_bot.bot import MonitorBot
 bot = MonitorBot()
 bot.send_message(`@someone`, 'Hello')
@@ -67,7 +67,7 @@ bot.send_message(`@someone`, 'Hello')
 - pyplot_obj(matplot module): upload_pyplot関数内で`pyplot_obj.savefig()`を呼んでいるので, savefig関数を持つmatplotlibのオブジェクトを渡してください.
 
 ##### コード例:
-```
+```python
 import matplotlib.pyplot as plt
 from monitor_bot.bot import MonitorBot
 bot = MonitorBot()
@@ -83,7 +83,7 @@ bot.upload_pyplot("@someone", plt)
 
 
 ##### コード例:
-```
+```python
 from PIL import Image
 from monitor_bot.bot import MonitorBot
 bot = MonitorBot()
@@ -94,7 +94,7 @@ bot.upload_pillow("@someone", img)
 ### 3. Slackから送られてきたメッセージに応答する.
 SlackからBot宛に送られたメッセージに対する処理を定義するデコレータを使うことができます.
 
-```MonitorBot.response_to(pattern)```
+``` MonitorBot.response_to(pattern) ```
 
 - pattern(string): どのようなメッセージに対して反応するかを定義する文字列. 正規表現が使用可能.
 
@@ -104,7 +104,7 @@ SlackからBot宛に送られたメッセージに対する処理を定義する
 
 ##### コード例:
 
-```
+```python
 from monitor_bot.bot import MonitorBot
 bot = MonitorBot()
 @bot.response_to("Hello")
