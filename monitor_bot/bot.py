@@ -4,10 +4,12 @@ import slacker
 import time
 import json
 import logging
-from ssl import SSLError
-from slackclient import SlackClient
-from io import BytesIO
 import threading
+from ssl import SSLError
+from io import BytesIO
+from slackclient import SlackClient
+from websocket import WebSocketConnectionClosedException
+
 from .setting import API_KEY
 
 
@@ -99,24 +101,32 @@ class MonitorBot(object):
             def loop(event):
                 pt = re.compile(pattern)
                 while True:
-                    if event.is_set():
-                        print("Break")
-                        break
-                    time.sleep(0.5)
-                    message = self.sc.rtm_read()
-                    for mss in message:
-                        if not len(mss):
-                            continue
-                        type = mss["type"]
-                        if type != 'message':
-                            continue
-                        user = mss.get("user", None)
-                        if user == self.bot_id:
-                            continue
+                    try:
+                        if event.is_set():
+                            print("Break")
+                            break
+                        time.sleep(1)
+                        message = self.sc.rtm_read()
+                        for mss in message:
+                            if not len(mss):
+                                continue
+                            type = mss["type"]
+                            if type != 'message':
+                                continue
+                            user = mss.get("user", None)
+                            if user == self.bot_id:
+                                continue
 
-                        text = mss.get("text", '')
-                        if pt.match(text):
-                            func(mss)
+                            text = mss.get("text", '')
+                            if pt.match(text):
+                                func(mss)
+                    except WebSocketConnectionClosedException as e:
+                        print('Websocket disconnected, trying to reconnect.')
+                        time.sleep(1)
+                        self.sc.rtm_connect()
+                    except Exception as e:
+                        # TODO: Handle error. 
+                        raise Exception("Error: {}".formta(e))
 
             func_name = func.__name__
             th_dict = self.thread.get(func_name, None)
