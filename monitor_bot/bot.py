@@ -103,7 +103,6 @@ class MonitorBot(object):
                 while True:
                     try:
                         if event.is_set():
-                            print("Break")
                             break
                         time.sleep(1)
                         message = self.sc.rtm_read()
@@ -125,7 +124,7 @@ class MonitorBot(object):
                         time.sleep(1)
                         self.sc.rtm_connect()
                     except Exception as e:
-                        # TODO: Handle error. 
+                        # TODO: Handle error.
                         raise Exception("Error: {}".formta(e))
 
             func_name = func.__name__
