@@ -1,4 +1,4 @@
-# Monitor Bot v0.0.1
+# Monitor Bot v0.0.2
 
 PythonスクリプトとSlackをつなげます.
 長時間かかる処理をSlackで監視することができるようになります.
